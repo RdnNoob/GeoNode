@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar - GeoLocate</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-kotak animasi-masuk">
+      <div class="auth-logo">
+        <h1>&#x1F4CD; GeoLocate</h1>
+        <p>Buat akun baru</p>
+      </div>
+
+      <div class="notifikasi" id="notif"></div>
+
+      <form id="form-daftar" autocomplete="on">
+        <div class="form-group">
+          <label for="nama">Nama Lengkap</label>
+          <input type="text" id="nama" placeholder="Nama Anda" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email / Gmail</label>
+          <input type="email" id="email" placeholder="nama@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="kata_sandi">Kata Sandi <span style="color:var(--teks-muda)">(min. 6 karakter)</span></label>
+          <input type="password" id="kata_sandi" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="no_telepon">Nomor Telepon <span style="color:var(--teks-muda)">(opsional)</span></label>
+          <input type="tel" id="no_telepon" placeholder="+62 812 xxxx xxxx" autocomplete="tel">
+        </div>
+
+        <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--teks-muda);margin-bottom:18px;">
+          &#x1F512; ID Anda akan otomatis dibuat setelah daftar. Bagikan ke teman untuk bertukar lokasi.
+        </div>
+
+        <button type="submit" class="btn btn-hijau btn-full" id="tombol-daftar">
+          Buat Akun
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Sudah punya akun? <a href="/login.html">Masuk di sini</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form-daftar');
+    const notif = document.getElementById('notif');
+    const tombol = document.getElementById('tombol-daftar');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      tombol.disabled = true;
+      tombol.innerHTML = '<span class="spinner"></span> Memproses...';
+      tampilNotif('', '');
+
+      const noTel = document.getElementById('no_telepon').value.trim();
+      const body = {
+        nama: document.getElementById('nama').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        kata_sandi: document.getElementById('kata_sandi').value,
+        no_telepon: noTel || null
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal mendaftar');
+
+        localStorage.setItem('gl_token', data.token);
+        localStorage.setItem('gl_user', JSON.stringify(data.user));
+
+        tampilNotif(`Selamat datang, ${data.user.nama}! ID Anda: #${data.user.id}`, 'sukses');
+        setTimeout(() => window.location.href = '/app.html', 1200);
+      } catch (err) {
+        tampilNotif(err.message, 'error');
+        tombol.disabled = false;
+        tombol.textContent = 'Buat Akun';
+      }
+    });
+
+    function tampilNotif(pesan, tipe) {
+      notif.textContent = pesan;
+      notif.className = 'notifikasi ' + (pesan ? tipe + ' tampil' : '');
+    }
+  </script>
+</body>
+</html>

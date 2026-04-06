@@ -1,0 +1,43 @@
+Options -Indexes
+RewriteEngine On
+
+# API Routing - auth
+RewriteRule ^api/auth/register$ api/auth/register.php [L]
+RewriteRule ^api/auth/login$ api/auth/login.php [L]
+RewriteRule ^api/auth/logout$ api/auth/logout.php [L]
+RewriteRule ^api/auth/me$ api/auth/me.php [L]
+
+# API Routing - users
+RewriteRule ^api/users/(.*)$ api/users/index.php [L,QSA]
+
+# API Routing - friends
+RewriteRule ^api/friends/requests/(.*)$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/requests$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/sent$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/request$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/(.*)$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends$ api/friends/index.php [L,QSA]
+
+# API Routing - location
+RewriteRule ^api/location/update$ api/location/update.php [L]
+RewriteRule ^api/location/friends$ api/location/friends.php [L]
+
+# API Routing - chat
+RewriteRule ^api/chat/messages$ api/chat/messages.php [L,QSA]
+
+# API Routing - keys
+RewriteRule ^api/keys/save$ api/keys/save.php [L]
+RewriteRule ^api/keys/get$ api/keys/get.php [L,QSA]
+
+# API Routing - admin
+RewriteRule ^api/admin/login$ api/admin/login.php [L]
+RewriteRule ^api/admin/logout$ api/admin/logout.php [L]
+RewriteRule ^api/admin/stats$ api/admin/stats.php [L]
+RewriteRule ^api/admin/users/(.*)$ api/admin/users.php [L,QSA]
+RewriteRule ^api/admin/users$ api/admin/users.php [L,QSA]
+RewriteRule ^api/admin/query$ api/admin/query.php [L]
+
+# Default - serve static files
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L]

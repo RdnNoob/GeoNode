@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoLocate - Aplikasi GPS Sosial</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2322c55e'/></svg>">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-titik"></div>
+      GeoLocate
+    </div>
+    <div class="navbar-menu">
+      <a href="/login.html">Masuk</a>
+      <a href="/register.html" class="btn btn-hijau" style="padding:8px 18px;font-size:14px;">Daftar</a>
+    </div>
+  </nav>
+
+  <main class="beranda">
+    <section class="hero">
+      <div class="animasi-masuk">
+        <h1 class="hero-judul">Temukan Teman,<br>Di Mana Saja</h1>
+        <p class="hero-sub">
+          Bagikan lokasi GPS secara real-time, chat terenkripsi, dan terhubung dengan orang-orang terdekatmu.
+        </p>
+        <div class="hero-aksi">
+          <a href="/register.html" class="btn btn-hijau" style="font-size:16px;padding:14px 32px;">
+            &#x1F4CD; Mulai Sekarang
+          </a>
+          <a href="/login.html" class="btn btn-outline" style="font-size:16px;padding:14px 32px;">
+            Masuk
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="fitur-grid animasi-masuk">
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F5FA;&#xFE0F;</span>
+        <div class="fitur-judul">GPS Live</div>
+        <div class="fitur-desc">Lihat lokasi teman secara real-time di peta interaktif</div>
+      </div>
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F512;</span>
+        <div class="fitur-judul">Chat Terenkripsi</div>
+        <div class="fitur-desc">Pesan end-to-end encrypted, otomatis terhapus setelah sesi</div>
+      </div>
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F91D;</span>
+        <div class="fitur-judul">Sistem Teman</div>
+        <div class="fitur-desc">Tambah teman dengan ID, konfirmasi dua arah untuk berbagi lokasi</div>
+      </div>
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x26A1;</span>
+        <div class="fitur-judul">Ringan & Cepat</div>
+        <div class="fitur-desc">Dibangun dengan Go, berjalan di localhost, bisa diinstall di Termux</div>
+      </div>
+    </section>
+
+    <footer style="text-align:center;padding:32px;color:var(--teks-muda);font-size:13px;border-top:1px solid var(--border);">
+      GeoLocate &copy; 2025 &mdash; Dibuat dengan &#x2764;&#xFE0F; menggunakan Go &amp; Vanilla JS
+    </footer>
+  </main>
+
+  <script>
+    // Cek apakah sudah login, redirect ke app
+    const token = localStorage.getItem('gl_token');
+    if (token) {
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(r => {
+        if (r.ok) window.location.href = '/app.html';
+      });
+    }
+  </script>
+</body>
+</html>

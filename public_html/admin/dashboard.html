@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - GeoLocate</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    .tab-konten { display: none; }
+    .tab-konten.aktif { display: block; }
+    #peta-admin { height: 400px; border-radius: var(--radius); border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-titik"></div>
+      GeoLocate Admin
+    </div>
+    <div class="navbar-menu">
+      <span style="font-size:13px;color:var(--teks-muda);">Panel Administrasi</span>
+      <button class="btn-abu" onclick="logoutAdmin()" style="font-size:13px;padding:6px 14px;">Keluar</button>
+    </div>
+  </nav>
+
+  <div class="admin-layout">
+    <!-- Sidebar Admin -->
+    <div class="admin-sidebar">
+      <div style="font-size:12px;color:var(--teks-muda);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:12px;padding:0 4px;">Menu</div>
+      <div class="admin-menu-item aktif" onclick="gantiMenu('statistik', this)">&#x1F4CA; Statistik</div>
+      <div class="admin-menu-item" onclick="gantiMenu('pengguna', this)">&#x1F465; Pengguna</div>
+      <div class="admin-menu-item" onclick="gantiMenu('peta', this)">&#x1F5FA; Peta Live</div>
+      <div class="admin-menu-item" onclick="gantiMenu('editor', this)">&#x1F4DD; Editor File</div>
+      <div class="admin-menu-item" onclick="gantiMenu('database', this)">&#x1F4BE; Database</div>
+    </div>
+
+    <!-- Konten Admin -->
+    <div class="admin-konten">
+
+      <!-- Statistik -->
+      <div id="tab-statistik" class="tab-konten aktif">
+        <h2 style="margin-bottom:20px;">&#x1F4CA; Statistik Aplikasi</h2>
+        <div class="stat-grid">
+          <div class="stat-kartu">
+            <div class="stat-angka" id="stat-total">-</div>
+            <div class="stat-label">Total Pengguna</div>
+          </div>
+          <div class="stat-kartu">
+            <div class="stat-angka" id="stat-online" style="color:var(--hijau);">-</div>
+            <div class="stat-label">Sedang Online</div>
+          </div>
+          <div class="stat-kartu">
+            <div class="stat-angka" id="stat-teman">-</div>
+            <div class="stat-label">Total Pertemanan</div>
+          </div>
+          <div class="stat-kartu">
+            <div class="stat-angka" id="stat-pesan">-</div>
+            <div class="stat-label">Total Pesan</div>
+          </div>
+          <div class="stat-kartu">
+            <div class="stat-angka" id="stat-daftar">-</div>
+            <div class="stat-label">Daftar Hari Ini</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--teks-muda);margin-top:8px;" id="waktu-refresh"></div>
+      </div>
+
+      <!-- Pengguna -->
+      <div id="tab-pengguna" class="tab-konten">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2>&#x1F465; Daftar Pengguna</h2>
+          <button class="btn btn-outline" style="font-size:13px;" onclick="muatPengguna()">&#x21BB; Muat Ulang</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="tabel">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nama</th>
+                <th>Email</th>
+                <th>No. Telepon</th>
+                <th>Status</th>
+                <th>Teman</th>
+                <th>Bergabung</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-pengguna">
+              <tr><td colspan="8" style="text-align:center;color:var(--teks-muda);padding:30px;">Memuat...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Peta Live Admin -->
+      <div id="tab-peta" class="tab-konten">
+        <h2 style="margin-bottom:20px;">&#x1F5FA; Peta Lokasi Live</h2>
+        <div id="peta-admin"></div>
+        <div style="margin-top:12px;font-size:13px;color:var(--teks-muda);">
+          &#x1F7E2; Online &nbsp; &#x1F534; Offline &nbsp; &#x26AA; Tidak ada lokasi
+        </div>
+      </div>
+
+      <!-- Log Aktivitas -->
+      <div id="tab-log" class="tab-konten">
+        <h2 style="margin-bottom:4px;">&#x1F4CB; Log Aktivitas</h2>
+        <div style="color:var(--teks-muda);font-size:14px;margin-bottom:20px;" id="log-nama-pengguna"></div>
+        <table class="tabel">
+          <thead>
+            <tr><th>Waktu</th><th>Aksi</th><th>Detail</th></tr>
+          </thead>
+          <tbody id="tabel-log">
+            <tr><td colspan="3" style="text-align:center;color:var(--teks-muda);">Pilih pengguna dari tab Pengguna</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Editor File -->
+      <div id="tab-editor" class="tab-konten">
+        <h2 style="margin-bottom:20px;">&#x1F4DD; Panel Pengembangan</h2>
+        <div class="editor-panel" style="height:500px;">
+          <div class="file-tree" id="pohon-file">
+            <div style="font-size:12px;color:var(--teks-muda);padding:4px 10px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">File</div>
+            <!-- Diisi via JS -->
+          </div>
+          <div class="editor-area">
+            <div class="editor-toolbar">
+              <span style="font-size:13px;color:var(--teks-muda);" id="nama-file-aktif">Pilih file</span>
+              <span id="status-sintaks" style="font-size:12px;"></span>
+              <div style="margin-left:auto;display:flex;gap:8px;">
+                <button class="btn btn-outline" style="font-size:12px;padding:5px 12px;" onclick="simpanFile()" id="tombol-simpan" disabled>
+                  &#x1F4BE; Simpan
+                </button>
+              </div>
+            </div>
+            <textarea class="editor-kode" id="area-editor" placeholder="Pilih file dari kiri..." oninput="cekSintaks()"></textarea>
+            <div class="editor-status">
+              <span id="status-editor">Siap</span>
+              <span id="posisi-kursor">Baris 1, Kolom 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Database -->
+      <div id="tab-database" class="tab-konten">
+        <h2 style="margin-bottom:20px;">&#x1F4BE; Manajemen Database</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;">
+          <div class="kartu">
+            <div style="font-size:16px;font-weight:700;margin-bottom:8px;">&#x1F5C2; geolocate.db</div>
+            <div style="font-size:14px;color:var(--teks-muda);margin-bottom:16px;">Database utama pengguna</div>
+            <a href="/api/admin/download-db?file=geolocate.db" class="btn btn-hijau" id="tombol-unduh-main" style="text-decoration:none;">
+              &#x2B07; Unduh Database
+            </a>
+          </div>
+          <div class="kartu">
+            <div style="font-size:16px;font-weight:700;margin-bottom:8px;">&#x1F512; admin.db</div>
+            <div style="font-size:14px;color:var(--teks-muda);margin-bottom:16px;">Database akun admin</div>
+            <a href="/api/admin/download-db?file=admin.db" class="btn btn-hijau" style="text-decoration:none;">
+              &#x2B07; Unduh Database
+            </a>
+          </div>
+        </div>
+        <div class="kartu" style="margin-top:20px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Eksekusi SQL</div>
+          <textarea id="query-sql" style="height:120px;font-family:monospace;font-size:13px;" placeholder="SELECT * FROM users LIMIT 10;"></textarea>
+          <button class="btn btn-hijau" style="margin-top:10px;" onclick="eksekusiSQL()">&#x25B6; Jalankan Query</button>
+          <div id="hasil-sql" style="margin-top:16px;font-family:monospace;font-size:13px;background:var(--bg);padding:12px;border-radius:8px;white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
