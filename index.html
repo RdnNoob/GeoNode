@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoNode - Platform GPS Sosial</title>
+  <meta name="description" content="GeoNode - Platform GPS Sosial Real-Time. Bagikan lokasi, temukan teman di sekitar Anda.">
+  <meta property="og:title" content="GeoNode - Platform GPS Sosial">
+  <meta property="og:description" content="Platform GPS Sosial Real-Time. Bagikan lokasi, temukan teman di sekitar Anda.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://geonode.gt.tc/">
+  <link rel="stylesheet" href="/css/style.css?v=4">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2322c55e'/></svg>">
+  <style>
+    .beranda { min-height: 100vh; display: flex; flex-direction: column; padding-top: 60px; }
+
+    .hero {
+      padding: 48px 20px 32px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hero-judul {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #fff 0%, var(--hijau) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--teks-muda);
+      max-width: 440px;
+      margin: 0 auto 24px;
+      line-height: 1.7;
+    }
+
+    .hero-aksi {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .hero-aksi .btn {
+      font-size: 15px;
+      padding: 12px 28px;
+    }
+
+    .fitur-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 0 16px 32px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .fitur-kartu {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 14px;
+      text-align: center;
+      transition: all var(--transisi);
+    }
+
+    .fitur-kartu:hover {
+      border-color: var(--hijau);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 24px rgba(34,197,94,0.12);
+    }
+
+    .fitur-ikon { font-size: 28px; margin-bottom: 10px; display: block; }
+    .fitur-judul { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .fitur-desc { font-size: 12px; color: var(--teks-muda); line-height: 1.5; }
+
+    .beranda-footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 20px;
+      color: var(--teks-muda);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (min-width: 600px) {
+      .hero-judul { font-size: 48px; }
+      .hero-sub { font-size: 17px; }
+      .fitur-grid { grid-template-columns: repeat(4, 1fr); padding: 0 24px 40px; }
+      .fitur-kartu { padding: 22px 16px; }
+      .fitur-ikon { font-size: 32px; }
+      .fitur-judul { font-size: 15px; }
+      .fitur-desc { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;" aria-label="GeoNode Home"><div class="navbar-brand" style="pointer-events:none;">
+      <div class="logo-titik"></div>
+      GeoNode
+    </div></a>
+    <div class="navbar-menu">
+      <a href="/login.html">Masuk</a>
+      <a href="/register.html" class="btn btn-hijau" style="padding:7px 16px;font-size:13px;">Daftar</a>
+    </div>
+  </nav>
+
+  <main class="beranda">
+    <section class="hero animasi-masuk">
+      <h1 class="hero-judul">Pantau Teman,<br>Di Mana Saja</h1>
+      <p class="hero-sub">
+        Bagikan lokasi GPS secara real-time, chat langsung bersama teman, dan tetap terhubung di mana pun mereka berada.
+      </p>
+      <div class="hero-aksi">
+        <a href="/register.html" class="btn btn-hijau">
+          &#x1F4CD; Mulai Sekarang
+        </a>
+        <a href="/login.html" class="btn btn-outline">
+          Masuk
+        </a>
+      </div>
+    </section>
+
+    <section class="fitur-grid animasi-masuk">
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F5FA;&#xFE0F;</span>
+        <div class="fitur-judul">GPS Live</div>
+        <div class="fitur-desc">Lihat lokasi teman secara real-time di peta interaktif</div>
+      </div>
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F4AC;</span>
+        <div class="fitur-judul">Chat Langsung</div>
+        <div class="fitur-desc">Kirim pesan teks ke teman, riwayat otomatis terhapus setelah 30 hari</div>
+      </div>
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F91D;</span>
+        <div class="fitur-judul">Sistem Teman</div>
+        <div class="fitur-desc">Tambah teman via ID unik, konfirmasi dua arah untuk berbagi lokasi</div>
+      </div>
+      <div class="fitur-kartu">
+        <span class="fitur-ikon">&#x1F4F1;</span>
+        <div class="fitur-judul">Mobile Friendly</div>
+        <div class="fitur-desc">Antarmuka responsif, dioptimalkan untuk penggunaan di smartphone</div>
+      </div>
+    </section>
+
+    <footer class="beranda-footer" style="padding:24px 20px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <div style="font-size:16px;font-weight:800;color:var(--hijau);">&#x1F4CD; GeoNode</div>
+        <div style="font-size:12px;color:var(--teks-muda);">Platform GPS Sosial Real-Time untuk Indonesia</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
+          <a href="/" style="font-size:12px;color:var(--teks-muda);text-decoration:none;">Beranda</a>
+          <a href="/login.html" style="font-size:12px;color:var(--teks-muda);text-decoration:none;">Masuk</a>
+          <a href="/register.html" style="font-size:12px;color:var(--teks-muda);text-decoration:none;">Daftar</a>
+        </div>
+        <div style="border-top:1px solid var(--border);width:100%;padding-top:12px;text-align:center;">
+          <div style="font-size:11px;color:var(--teks-muda);">Versi 2.0 &bull; &copy; 2026 GeoNode &bull; Hak Cipta Dilindungi</div>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    var token = localStorage.getItem('gl_token');
+    if (token) {
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function(r) {
+        if (r.ok) {
+          window.location.href = '/app.html';
+        } else {
+          localStorage.removeItem('gl_token');
+          localStorage.removeItem('gl_user');
+          window.location.href = '/login.html';
+        }
+      }).catch(function() {
+        window.location.href = '/login.html';
+      });
+    } else {
+      window.location.href = '/login.html';
+    }
+  </script>
+</body>
+</html>
