@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - GeoLocate</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-kotak animasi-masuk">
+      <div class="auth-logo">
+        <h1>&#x1F512; GeoLocate Admin</h1>
+        <p>Akses khusus administrator</p>
+      </div>
+
+      <div class="notifikasi" id="notif"></div>
+
+      <form id="form-admin" autocomplete="off">
+        <div class="form-group">
+          <label for="username">Username Admin</label>
+          <input type="text" id="username" placeholder="Username" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="kata_sandi">Kata Sandi</label>
+          <input type="password" id="kata_sandi" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-hijau btn-full" id="tombol-login">
+          &#x1F511; Masuk sebagai Admin
+        </button>
+      </form>
+
+      <div class="auth-footer" style="margin-top:20px;">
+        <a href="/">&larr; Kembali ke beranda</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('gl_admin_token');
+    if (token) {
+      fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(r => { if (r.ok) window.location.href = '/admin/dashboard.html'; });
+    }
+
+    const form = document.getElementById('form-admin');
+    const notif = document.getElementById('notif');
+    const tombol = document.getElementById('tombol-login');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      tombol.disabled = true;
+      tombol.innerHTML = '<span class="spinner"></span> Memverifikasi...';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            kata_sandi: document.getElementById('kata_sandi').value
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal login');
+
+        localStorage.setItem('gl_admin_token', data.token);
+        tampilNotif('Login berhasil! Mengalihkan...', 'sukses');
+        setTimeout(() => window.location.href = '/admin/dashboard.html', 800);
+      } catch (err) {
+        tampilNotif(err.message, 'error');
+        tombol.disabled = false;
+        tombol.innerHTML = '&#x1F511; Masuk sebagai Admin';
+      }
+    });
+
+    function tampilNotif(pesan, tipe) {
+      notif.textContent = pesan;
+      notif.className = 'notifikasi ' + (pesan ? tipe + ' tampil' : '');
+    }
+  </script>
+</body>
+</html>
