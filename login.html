@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk - GeoNode</title>
+  <meta name="description" content="Masuk ke GeoNode - Platform GPS Sosial Real-Time.">
+  <meta property="og:title" content="Masuk - GeoNode">
+  <meta property="og:description" content="Masuk ke GeoNode - Platform GPS Sosial Real-Time.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://geonode.gt.tc/login.html">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-kotak animasi-masuk">
+      <div class="auth-logo">
+        <a href="/" style="text-decoration:none;color:inherit;"><h1>&#x1F4CD; GeoNode</h1></a>
+        <p>Masuk ke akun Anda</p>
+      </div>
+
+      <div class="notifikasi" id="notif"></div>
+
+      <form id="form-login" autocomplete="on">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="nama@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="kata_sandi">Kata Sandi</label>
+          <input type="password" id="kata_sandi" name="kata_sandi" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-hijau btn-full" id="tombol-masuk">
+          Masuk
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Belum punya akun? <a href="/register.html">Daftar sekarang</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    // Cek sudah login
+    if (localStorage.getItem('gl_token')) {
+      fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('gl_token') } })
+        .then(r => { if (r.ok) window.location.href = '/app.html'; });
+    }
+
+    const form = document.getElementById('form-login');
+    const notif = document.getElementById('notif');
+    const tombol = document.getElementById('tombol-masuk');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      tombol.disabled = true;
+      tombol.innerHTML = '<span class="spinner"></span> Memproses...';
+      tampilNotif('', '');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value.trim(),
+            kata_sandi: document.getElementById('kata_sandi').value
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal login');
+
+        localStorage.setItem('gl_token', data.token);
+        localStorage.setItem('gl_user', JSON.stringify(data.user));
+
+        tampilNotif('Login berhasil! Mengalihkan...', 'sukses');
+        setTimeout(() => window.location.href = '/app.html', 800);
+      } catch (err) {
+        tampilNotif(err.message, 'error');
+        tombol.disabled = false;
+        tombol.textContent = 'Masuk';
+      }
+    });
+
+    function tampilNotif(pesan, tipe) {
+      notif.textContent = pesan;
+      notif.className = 'notifikasi ' + (pesan ? tipe + ' tampil' : '');
+    }
+  </script>
+</body>
+</html>
