@@ -1,0 +1,69 @@
+Options -Indexes
+RewriteEngine On
+RewriteBase /
+
+# Teruskan Authorization header ke PHP (penting untuk token auth)
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# API Routing - auth
+RewriteRule ^api/auth/register$ api/auth/register.php [L]
+RewriteRule ^api/auth/login$ api/auth/login.php [L]
+RewriteRule ^api/auth/logout$ api/auth/logout.php [L]
+RewriteRule ^api/auth/me$ api/auth/me.php [L]
+
+# API Routing - users
+RewriteRule ^api/users/(.*)$ api/users/index.php [L,QSA]
+
+# API Routing - friends (urutan penting: lebih spesifik dulu)
+RewriteRule ^api/friends/requests/(.*)/(accept|reject)$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/requests/(.*)$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/requests/?$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/sent/?$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/request/?$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/([0-9]+)$ api/friends/index.php [L,QSA]
+RewriteRule ^api/friends/?$ api/friends/index.php [L,QSA]
+
+# API Routing - location
+RewriteRule ^api/location/update$ api/location/update.php [L]
+RewriteRule ^api/location/friends$ api/location/friends.php [L]
+
+# API Routing - chat
+RewriteRule ^api/chat/messages$ api/chat/messages.php [L,QSA]
+
+# API Routing - WebSocket polling fallback
+RewriteRule ^api/ws/?$ api/ws/index.php [L,QSA]
+
+# API Routing - keys
+RewriteRule ^api/keys/save$ api/keys/save.php [L]
+RewriteRule ^api/keys/get$ api/keys/get.php [L,QSA]
+
+# API Routing - push notifications
+RewriteRule ^api/push/subscribe$ api/push/subscribe.php [L]
+RewriteRule ^api/push/vapid$ api/push/vapid.php [L]
+
+# API Routing - groups (group_id dikirim sebagai query param agar REQUEST_URI aman)
+RewriteRule ^api/groups/([0-9]+)/maps$ api/groups/maps.php?group_id=$1 [L,QSA]
+RewriteRule ^api/groups/([0-9]+)/messages$ api/groups/messages.php?group_id=$1 [L,QSA]
+RewriteRule ^api/groups/([0-9]+)/members$ api/groups/members.php?group_id=$1 [L,QSA]
+RewriteRule ^api/groups/([0-9]+)$ api/groups/index.php?group_id=$1 [L,QSA]
+RewriteRule ^api/groups/?$ api/groups/index.php [L,QSA]
+
+# API Routing - admin
+RewriteRule ^api/admin/login$ api/admin/login.php [L]
+RewriteRule ^api/admin/logout$ api/admin/logout.php [L]
+RewriteRule ^api/admin/stats$ api/admin/stats.php [L]
+RewriteRule ^api/admin/maintenance$ api/admin/maintenance.php [L,QSA]
+RewriteRule ^api/admin/force-logout$ api/admin/force-logout.php [L]
+RewriteRule ^api/admin/check-maintenance$ api/admin/check-maintenance.php [L]
+RewriteRule ^api/admin/users/(.*)$ api/admin/users.php [L,QSA]
+RewriteRule ^api/admin/users$ api/admin/users.php [L,QSA]
+RewriteRule ^api/admin/query$ api/admin/query.php [L]
+RewriteRule ^api/admin/download-db$ api/admin/download-db.php [L,QSA]
+RewriteRule ^api/admin/file$ api/admin/file.php [L,QSA]
+
+# Default - serve static files, jangan redirect ke index.html untuk API
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L]
