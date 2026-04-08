@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+  <title>GeoNode - Platform GPS Sosial</title>
+  <meta name="description" content="GeoNode - Pantau lokasi teman secara real-time di peta interaktif.">
+  <meta property="og:title" content="GeoNode - Platform GPS Sosial">
+  <meta property="og:description" content="Pantau lokasi teman secara real-time di peta interaktif GeoNode.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://geonode.gt.tc/">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#22c55e">
+  <link rel="stylesheet" href="/css/style.css?v=7">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body { overflow: hidden; }
+    #peta { position: absolute; inset: 0; z-index: 0; }
+    .app-wrapper { height: 100vh; height: 100dvh; display: flex; flex-direction: column; padding-top: 60px; }
+    .shortcut-bar { position: relative; z-index: 10; }
+    .main-area { position: relative; flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .panel-peta { flex: 1; position: relative; }
+
+    /* Kompas Style */
+    .leaflet-kompas {
+      background: var(--bg-kartu,#1e293b);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      padding: 0;
+      margin: 10px;
+    }
+    .kompas-lingkaran {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .kompas-label-n, .kompas-label-s, .kompas-label-e, .kompas-label-w {
+      position: absolute; font-size: 9px; font-weight: 700; line-height: 1;
+    }
+    .kompas-label-n { top: 5px; left: 50%; transform: translateX(-50%); color: #ef4444; }
+    .kompas-label-s { bottom: 5px; left: 50%; transform: translateX(-50%); color: #94a3b8; }
+    .kompas-label-e { right: 5px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+    .kompas-label-w { left: 5px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+    .kompas-jarum {
+      width: 4px; height: 36px;
+      display: flex; flex-direction: column;
+      transition: transform 0.3s ease;
+    }
+    .jarum-utara { flex: 1; background: #ef4444; border-radius: 2px 2px 0 0; }
+    .jarum-selatan { flex: 1; background: #94a3b8; border-radius: 0 0 2px 2px; }
+    .kompas-titik-tengah {
+      position: absolute;
+      width: 8px; height: 8px;
+      background: #fff;
+      border-radius: 50%;
+      border: 2px solid #374151;
+    }
+
+    /* Tooltip peta */
+    .leaflet-tooltip-saya, .leaflet-tooltip-teman {
+      background: rgba(0,0,0,0.8);
+      border: none;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 4px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .leaflet-tooltip-saya:before, .leaflet-tooltip-teman:before { display: none; }
+
+    /* Tombol tema peta */
+    .peta-tombol-tema {
+      background: var(--bg-kartu,#1e293b);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.15s;
+    }
+    .peta-tombol-tema:hover { transform: scale(1.1); }
+
+    @keyframes denyut {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="logout()" style="cursor:pointer;user-select:none;" title="Kembali ke Beranda">
+      <div class="logo-titik"></div>
+      GeoNode
+    </div>
+    <div class="navbar-menu" id="user-info">
+      <span id="nama-pengguna" style="color:var(--teks-muda);font-size:14px;"></span>
+      <span id="user-id-badge" class="badge badge-hijau" style="cursor:pointer;" title="Klik untuk salin ID Anda"></span>
+      <button class="btn-abu" onclick="logout()" style="font-size:13px;padding:6px 14px;">Keluar</button>
+    </div>
+  </nav>
+
+  <div class="app-wrapper">
+    <div class="shortcut-bar">
+      <button class="shortcut-btn aktif" onclick="gantitab('peta')">&#x1F5FA;&#xFE0F; Peta</button>
+      <button class="shortcut-btn" onclick="gantitab('teman')">&#x1F91D; Teman <span class="chip-notif" id="chip-permintaan" style="display:none">!</span></button>
+      <button class="shortcut-btn" onclick="gantitab('chat')">&#x1F4AC; Chat</button>
+      <button class="shortcut-btn" onclick="gantitab('profil')">&#x1F464; Profil</button>
+    </div>
+
+    <div class="main-area">
+      <div id="drawer-overlay" class="drawer-overlay" onclick="tutupDrawer()"></div>
+
+      <!-- Panel Samping (Drawer) -->
+      <div class="panel-samping" id="panel-samping">
+        <button class="drawer-tutup-btn" onclick="tutupDrawer()">&#x2715;</button>
+
+        <!-- Tab: Teman -->
+        <div id="konten-teman" class="panel-tab" style="display:flex;flex-direction:column;height:100%;">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <span style="font-weight:700;font-size:15px;">Teman</span>
+              <button class="btn-hijau btn" style="padding:6px 12px;font-size:13px;" onclick="bukaModalTeman()">+ Tambah</button>
+            </div>
+            <div class="sidebar-tabs">
+              <button class="sidebar-tab aktif" onclick="gantiTabTeman('daftar',this)">Daftar</button>
+              <button class="sidebar-tab" onclick="gantiTabTeman('permintaan',this)">
+                Permintaan <span id="badge-perm" class="chip-notif" style="display:none;"></span>
+              </button>
+              <button class="sidebar-tab" onclick="gantiTabTeman('group',this)">Grup</button>
+            </div>
+          </div>
+          <div id="tab-daftar-teman" class="sidebar-konten" style="flex:1;">
+            <div class="halaman-kosong"><div class="halaman-kosong-ikon">&#x1F91D;</div><div>Memuat daftar teman...</div></div>
+          </div>
+          <div id="tab-permintaan-teman" class="sidebar-konten" style="flex:1;display:none;">
+            <div class="halaman-kosong"><div class="halaman-kosong-ikon">&#x1F4EC;</div><div>Tidak ada permintaan masuk</div></div>
+          </div>
+          <div id="tab-daftar-group-teman" class="sidebar-konten" style="flex:1;display:none;">
+            <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
+              <button class="btn btn-hijau" style="width:100%;font-size:13px;" onclick="bukaModalBuatGroup()">+ Buat Grup Baru</button>
+            </div>
+            <div id="daftar-group-teman"></div>
+          </div>
+        </div>
+
+        <!-- Tab: Chat -->
+        <div id="konten-chat-list" class="panel-tab" style="display:none;flex-direction:column;height:100%;">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-weight:700;font-size:15px;">Pesan</div>
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="bukaModalBuatGroup()">+ Grup</button>
+          </div>
+          <div style="padding:8px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--teks-muda);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Chat Personal</div>
+          <div id="daftar-chat" class="sidebar-konten" style="flex:0 0 auto;max-height:50%;">
+            <div class="halaman-kosong"><div class="halaman-kosong-ikon">&#x1F4AC;</div><div>Pilih teman untuk mulai chat</div></div>
+          </div>
+          <div style="padding:8px 16px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:12px;color:var(--teks-muda);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Grup</div>
+          <div id="daftar-group-chat" class="sidebar-konten" style="flex:1;">
+            <div class="halaman-kosong"><div class="halaman-kosong-ikon">&#x1F465;</div><div>Belum ada grup</div></div>
+          </div>
+        </div>
+
+        <!-- Tab: Profil -->
+        <div id="konten-profil" class="panel-tab" style="display:none;padding:20px;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div class="avatar avatar-saya" style="width:64px;height:64px;font-size:24px;margin:0 auto 12px;" id="avatar-profil"></div>
+            <div style="font-size:18px;font-weight:700;" id="profil-nama"></div>
+            <div style="color:var(--teks-muda);font-size:14px;" id="profil-email"></div>
+          </div>
+          <div class="kartu" style="margin-bottom:12px;">
+            <div style="font-size:12px;color:var(--teks-muda);">ID Pengguna Anda</div>
+            <div style="font-size:20px;font-weight:700;color:var(--hijau);margin-top:4px;" id="profil-id"></div>
+            <div style="font-size:12px;color:var(--teks-muda);margin-top:4px;">Bagikan ID ini ke teman untuk saling terhubung</div>
+            <button class="btn btn-outline" style="margin-top:10px;font-size:13px;padding:6px 14px;" onclick="salinID()">&#x1F4CB; Salin ID</button>
+          </div>
+          <div class="kartu">
+            <div style="font-size:12px;color:var(--teks-muda);margin-bottom:8px;">Status GPS</div>
+            <div id="status-gps" style="font-size:14px;">Mendeteksi...</div>
+          </div>
+        
+        <!-- Footer Profesional -->
+        <div class="kartu" style="margin-top:16px;background:var(--bg2);border:1px solid var(--border);">
+          <div style="text-align:center;">
+            <div style="font-size:18px;font-weight:800;color:var(--hijau);letter-spacing:-0.5px;">&#x1F4CD; GeoNode</div>
+            <div style="font-size:11px;color:var(--teks-muda);margin-top:4px;">Platform GPS Sosial Real-Time</div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:20px;margin:12px 0;flex-wrap:wrap;">
+            <a href="/" style="font-size:12px;color:var(--teks-muda);text-decoration:none;" target="_blank">Beranda</a>
+            <a href="/login.html" style="font-size:12px;color:var(--teks-muda);text-decoration:none;">Masuk</a>
+            <a href="/register.html" style="font-size:12px;color:var(--teks-muda);text-decoration:none;">Daftar</a>
+          </div>
+          <div style="text-align:center;border-top:1px solid var(--border);padding-top:10px;">
+            <div style="font-size:11px;color:var(--teks-muda);">Versi 2.1 &bull; &copy; 2026 GeoNode</div>
+            <div style="font-size:10px;color:var(--teks-muda);margin-top:2px;">Dibuat dengan &#x2764;&#xFE0F; untuk Indonesia</div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- Peta Utama -->
+      <div class="panel-peta" id="panel-peta">
+        <div id="peta"></div>
+
+        <!-- Kontrol Peta -->
+        <div class="peta-kontrol" id="peta-kontrol">
+          <button class="peta-tombol" onclick="pusatKeLokasiku()" title="Pusatkan ke lokasi saya">&#x2295;</button>
+          <button class="peta-tombol" onclick="tampilkanSemuaTeman()" title="Tampilkan semua teman">&#x1F465;</button>
+          <button class="peta-tombol" id="tombol-group-maps" onclick="toggleGroupMapDropdown(event)" title="Peta Grup">&#x1F5FA;&#xFE0F;</button>
+          <button class="peta-tombol peta-tombol-tema" id="tombol-tema-peta" title="Ganti tema peta">&#x1F319;</button>
+        </div>
+
+        <!-- Dropdown Pilih Peta Grup -->
+        <div id="dropdown-group-maps" style="display:none;position:absolute;top:80px;right:65px;z-index:100;background:var(--bg2,#1e293b);border:1px solid rgba(255,255,255,0.15);border-radius:12px;min-width:210px;max-width:260px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.5);"></div>
+
+        <!-- Info Peta -->
+        <div class="peta-info" id="peta-info" style="display:none;">
+          <div style="font-size:12px;color:var(--teks-muda);margin-bottom:4px;">Lokasi Saya</div>
+          <div id="koordinat-saya" style="font-size:13px;font-weight:500;"></div>
+        </div>
+      </div>
+
+      <!-- Area Chat -->
+      <div id="panel-chat" class="panel-chat-area" style="display:none;">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--teks-muda);">
+          <div class="halaman-kosong">
+            <div class="halaman-kosong-ikon">&#x1F4AC;</div>
+            <div>Pilih teman atau grup untuk memulai chat</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Teman -->
+  <div class="overlay" id="overlay-teman" onclick="(function(e){if(e.target===document.getElementById('overlay-teman'))tutupModal()})(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-judul">&#x1F91D; Tambah Teman</div>
+        <button class="modal-tutup" onclick="tutupModal()">&#x2715;</button>
+      </div>
+      <div class="notifikasi" id="notif-teman"></div>
+      <div class="form-group">
+        <label>Masukkan ID Pengguna</label>
+        <div class="input-id-teman">
+          <input type="text" id="input-id-teman" placeholder="Contoh: RGGeoNd_00042 atau 42">
+          <button class="btn btn-hijau" onclick="kirimPermintaanTeman()" style="flex-shrink:0;">Kirim</button>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--teks-muda);">Minta teman berbagi ID mereka, lalu masukkan di sini.</div>
+    </div>
+  </div>
+
+  <!-- Modal Buat Grup -->
+  <div class="overlay" id="overlay-buat-group" onclick="(function(e){if(e.target===document.getElementById('overlay-buat-group'))tutupModalBuatGroup()})(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-judul">&#x1F465; Buat Grup Baru</div>
+        <button class="modal-tutup" onclick="tutupModalBuatGroup()">&#x2715;</button>
+      </div>
+      <div class="notifikasi" id="notif-group-buat"></div>
+      <div class="form-group">
+        <label>Nama Grup</label>
+        <input type="text" id="input-nama-group" placeholder="Nama grup...">
+      </div>
+      <div style="font-size:13px;color:var(--teks-muda);margin-bottom:12px;">Kamu otomatis menjadi admin grup dan bisa menambahkan anggota setelah grup dibuat.</div>
+      <button class="btn btn-hijau" style="width:100%;" onclick="buatGroup()">Buat Grup</button>
+    </div>
+  </div>
+
+  <!-- Modal Atur Grup (admin) -->
+  <div class="overlay" id="overlay-atur-group" onclick="(function(e){if(e.target===document.getElementById('overlay-atur-group'))tutupAturGroup()})(event)">
+    <div class="modal" style="max-height:85vh;overflow-y:auto;">
+      <div class="modal-header">
+        <div class="modal-judul">&#x2699;&#xFE0F; Pengaturan Grup</div>
+        <button class="modal-tutup" onclick="tutupAturGroup()">&#x2715;</button>
+      </div>
+      <div id="body-atur-group"></div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Anggota (standalone) -->
+  <div class="overlay" id="overlay-tambah-anggota" onclick="(function(e){if(e.target===document.getElementById('overlay-tambah-anggota'))tutupModalTambahAnggota()})(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-judul" id="judul-tambah-anggota">&#x1F465; Tambah Anggota</div>
+        <button class="modal-tutup" onclick="tutupModalTambahAnggota()">&#x2715;</button>
+      </div>
+      <div class="notifikasi" id="notif-tambah-anggota-modal"></div>
+      <div class="form-group">
+        <label>Masukkan ID atau Kode Pengguna</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="input-tambah-anggota-modal" placeholder="Contoh: RGGeoNd_00042 atau 42" style="flex:1;">
+          <button class="btn btn-hijau" style="flex-shrink:0;" onclick="kirimTambahAnggota()">+ Tambah</button>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--teks-muda);margin-bottom:12px;">Masukkan ID atau kode pengguna yang ingin ditambahkan ke grup.</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Anggota Saat Ini</div>
+      <div id="daftar-anggota-grup-modal" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/peta.js?v=4"></script>
+  <script src="/js/app.js?v=11"></script>
+  <script src="/js/push.js?v=1"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      init();
+      initPushNotifications();
+    });
+  </script>
+</body>
+</html>
