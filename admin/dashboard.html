@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - GeoNode</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body { background: #0a0f1a; }
+    .admin-layout { display: flex; min-height: 100vh; padding-top: 60px; }
+    .admin-sidebar {
+      width: 240px; background: #0d1321; border-right: 1px solid #1e293b;
+      position: fixed; top: 60px; left: 0; bottom: 0; overflow-y: auto;
+      z-index: 50; transition: transform 0.3s ease;
+    }
+    .admin-sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid #1e293b; }
+    .admin-sidebar-header h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; font-weight: 700; }
+    .admin-menu-item {
+      display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+      font-size: 13px; color: #94a3b8; cursor: pointer; transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .admin-menu-item:hover { background: #111827; color: #e2e8f0; }
+    .admin-menu-item.aktif { background: #111827; color: #22c55e; border-left-color: #22c55e; font-weight: 600; }
+    .admin-menu-icon { width: 18px; text-align: center; font-size: 15px; }
+    .admin-main { flex: 1; margin-left: 240px; padding: 24px; min-height: calc(100vh - 60px); }
+    .tab-konten { display: none; }
+    .tab-konten.aktif { display: block; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-kartu {
+      background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+      border: 1px solid #1e293b; border-radius: 16px; padding: 20px;
+      position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-kartu:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .stat-kartu::before {
+      content: ''; position: absolute; top: 0; right: 0; width: 80px; height: 80px;
+      border-radius: 50%; opacity: 0.08; transform: translate(20px, -20px);
+    }
+    .stat-kartu.hijau::before { background: #22c55e; }
+    .stat-kartu.biru::before { background: #3b82f6; }
+    .stat-kartu.ungu::before { background: #8b5cf6; }
+    .stat-kartu.kuning::before { background: #f59e0b; }
+    .stat-kartu.merah::before { background: #ef4444; }
+    .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .stat-angka { font-size: 32px; font-weight: 800; margin: 6px 0 2px; letter-spacing: -0.02em; }
+    .stat-kartu.hijau .stat-angka { color: #22c55e; }
+    .stat-kartu.biru .stat-angka { color: #3b82f6; }
+    .stat-kartu.ungu .stat-angka { color: #8b5cf6; }
+    .stat-kartu.kuning .stat-angka { color: #f59e0b; }
+    .stat-kartu.merah .stat-angka { color: #ef4444; }
+    .stat-sub { font-size: 11px; color: #475569; }
+
+    .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .panel-kartu {
+      background: #111827; border: 1px solid #1e293b; border-radius: 16px; padding: 20px;
+    }
+    .panel-judul {
+      font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .panel-judul .badge-live {
+      font-size: 10px; background: rgba(34,197,94,0.15); color: #22c55e;
+      padding: 3px 8px; border-radius: 100px; font-weight: 600;
+      animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .recent-list { list-style: none; padding: 0; margin: 0; }
+    .recent-list li {
+      padding: 10px 0; border-bottom: 1px solid #1e293b; font-size: 13px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .recent-list li:last-child { border-bottom: none; }
+    .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; flex-shrink: 0; }
+    .last-seen { font-size: 11px; color: #475569; white-space: nowrap; }
+
+    .tabel { width: 100%; border-collapse: collapse; }
+    .tabel th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #64748b; padding: 10px 12px; border-bottom: 2px solid #1e293b; font-weight: 700;
+      position: sticky; top: 0; background: #111827; z-index: 1;
+    }
+    .tabel td { padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 13px; vertical-align: middle; }
+    .tabel tr:hover td { background: rgba(30,41,59,0.5); }
+
+    .badge { padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .badge-hijau { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .badge-abu { background: rgba(100,116,139,0.15); color: #64748b; }
+    .badge-kuning { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-merah { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+    .cari-wrapper { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .cari-wrapper input {
+      flex: 1; min-width: 200px; padding: 10px 14px; background: #0d1321;
+      border: 1px solid #1e293b; border-radius: 10px; color: #e2e8f0; font-size: 13px;
+      transition: border-color 0.2s;
+    }
+    .cari-wrapper input:focus { outline: none; border-color: #22c55e; }
+
+    .aksi-grid { display: flex; gap: 4px; flex-wrap: wrap; }
+    .aksi-grid .btn { font-size: 11px; padding: 4px 8px; border-radius: 6px; }
+
+    .pw-wrap { max-width: 150px; }
+    .pw-wrap .salin-btn {
+      font-size: 10px; padding: 2px 6px; background: transparent;
+      border: 1px solid #1e293b; border-radius: 4px; color: #64748b; cursor: pointer;
+    }
+    .pw-wrap .salin-btn:hover { color: #e2e8f0; border-color: #334155; }
+
+    #peta-admin { height: 480px; border-radius: 16px; border: 1px solid #1e293b; }
+
+    .switch-wrapper { display: flex; align-items: center; gap: 12px; }
+    .switch { position: relative; display: inline-block; width: 52px; height: 28px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #374151; border-radius: 100px; transition: .3s; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .3s; }
+    input:checked + .slider { background: #ef4444; }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    .kontrol-kartu { background: #111827; border: 1px solid #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .kontrol-judul { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .kontrol-desc { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+
+    .editor-panel {
+      display: grid; grid-template-columns: 220px 1fr; gap: 0;
+      border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; background: #0d1321;
+    }
+    .file-tree {
+      border-right: 1px solid #1e293b; overflow-y: auto; max-height: 500px; background: #0a0f1a;
+    }
+    .file-item {
+      padding: 8px 14px; font-size: 12px; color: #94a3b8; cursor: pointer;
+      border-bottom: 1px solid rgba(30,41,59,0.4); transition: all 0.15s;
+    }
+    .file-item:hover { background: #111827; color: #e2e8f0; }
+    .file-item.aktif { background: #1e293b; color: #22c55e; font-weight: 600; }
+    .editor-area { display: flex; flex-direction: column; }
+    .editor-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+      border-bottom: 1px solid #1e293b; background: #111827;
+    }
+    .editor-kode {
+      flex: 1; width: 100%; min-height: 380px; padding: 14px; font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 13px; background: #0d1321; color: #e2e8f0; border: none; resize: none; line-height: 1.6;
+    }
+    .editor-kode:focus { outline: none; }
+    .editor-status {
+      display: flex; justify-content: space-between; padding: 6px 14px;
+      font-size: 11px; color: #475569; border-top: 1px solid #1e293b; background: #111827;
+    }
+
+    .section-judul { font-size: 20px; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .section-judul-icon { font-size: 24px; }
+
+    .pertemanan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .pertemanan-kartu {
+      background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .pertemanan-kartu .avatar { width: 40px; height: 40px; font-size: 16px; flex-shrink: 0; }
+
+    .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+    .health-item {
+      background: #0d1321; border: 1px solid #1e293b; border-radius: 12px; padding: 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .health-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .health-dot.ok { background: #22c55e; }
+    .health-dot.warn { background: #f59e0b; }
+    .health-dot.error { background: #ef4444; }
+
+    @media (max-width: 768px) {
+      .admin-sidebar { transform: translateX(-100%); width: 260px; z-index: 100; }
+      .admin-sidebar.open { transform: translateX(0); }
+      .admin-main { margin-left: 0; padding: 16px; }
+      .panel-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .editor-panel { grid-template-columns: 1fr; }
+      .file-tree { max-height: 200px; border-right: none; border-bottom: 1px solid #1e293b; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar" style="background:#0d1321;border-bottom:1px solid #1e293b;">
+    <div class="navbar-brand" style="gap:10px;">
+      <button class="btn-abu" id="toggle-sidebar" onclick="toggleSidebar()" style="display:none;padding:6px 10px;font-size:16px;">&#9776;</button>
+      <div class="logo-titik" style="background:#22c55e;"></div>
+      <span style="font-weight:800;font-size:16px;">GeoNode</span>
+      <span style="font-size:12px;color:#64748b;font-weight:600;">ADMIN</span>
+    </div>
+    <div class="navbar-menu" style="gap:12px;">
+      <span style="font-size:12px;color:#475569;" id="waktu-live"></span>
+      <span class="badge badge-hijau" id="status-koneksi">Terhubung</span>
+      <button class="btn-abu" onclick="logoutAdmin()" style="font-size:12px;padding:6px 14px;">Keluar</button>
+    </div>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-sidebar-header">
+        <h3>Navigasi</h3>
+      </div>
+      <div class="admin-menu-item aktif" onclick="gantiMenu('statistik', this)">
+        <span class="admin-menu-icon">&#x1F4CA;</span> Dashboard
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('pengguna', this)">
+        <span class="admin-menu-icon">&#x1F465;</span> Pengguna
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('pertemanan', this)">
+        <span class="admin-menu-icon">&#x1F91D;</span> Pertemanan
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('peta', this)">
+        <span class="admin-menu-icon">&#x1F5FA;</span> Peta Live
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('editor', this)">
+        <span class="admin-menu-icon">&#x1F4DD;</span> Editor File
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('database', this)">
+        <span class="admin-menu-icon">&#x1F4BE;</span> Database
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('log', this)">
+        <span class="admin-menu-icon">&#x1F4CB;</span> Log Aktivitas
+      </div>
+      <div class="admin-menu-item" onclick="gantiMenu('kontrol', this)">
+        <span class="admin-menu-icon">&#x2699;</span> Kontrol Sistem
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- DASHBOARD -->
+      <div id="tab-statistik" class="tab-konten aktif">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F4CA;</span> Dashboard
+          <span style="margin-left:auto;font-size:11px;color:#475569;font-weight:400;" id="waktu-refresh">Memuat...</span>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-kartu hijau">
+            <div class="stat-label">Total Pengguna</div>
+            <div class="stat-angka" id="stat-total">-</div>
+            <div class="stat-sub">Terdaftar di platform</div>
+          </div>
+          <div class="stat-kartu biru">
+            <div class="stat-label">Sedang Online</div>
+            <div class="stat-angka" id="stat-online">-</div>
+            <div class="stat-sub">Aktif saat ini</div>
+          </div>
+          <div class="stat-kartu ungu">
+            <div class="stat-label">Total Pertemanan</div>
+            <div class="stat-angka" id="stat-teman">-</div>
+            <div class="stat-sub">Koneksi aktif</div>
+          </div>
+          <div class="stat-kartu kuning">
+            <div class="stat-label">Total Pesan</div>
+            <div class="stat-angka" id="stat-pesan">-</div>
+            <div class="stat-sub">Terkirim keseluruhan</div>
+          </div>
+          <div class="stat-kartu merah">
+            <div class="stat-label">Daftar Hari Ini</div>
+            <div class="stat-angka" id="stat-daftar">-</div>
+            <div class="stat-sub">Pendaftaran baru</div>
+          </div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel-kartu">
+            <div class="panel-judul">
+              Pengguna Terbaru
+              <span class="badge-live">LIVE</span>
+            </div>
+            <ul class="recent-list" id="recent-users">
+              <li style="color:#475569;">Memuat...</li>
+            </ul>
+          </div>
+          <div class="panel-kartu">
+            <div class="panel-judul">
+              Aktivitas Terbaru
+              <span class="badge-live">LIVE</span>
+            </div>
+            <ul class="recent-list" id="recent-logs">
+              <li style="color:#475569;">Memuat...</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="panel-kartu">
+          <div class="panel-judul">Kesehatan Sistem</div>
+          <div class="health-grid" id="health-grid">
+            <div class="health-item"><div class="health-dot ok"></div><div><div style="font-size:13px;font-weight:600;">Database</div><div style="font-size:11px;color:#475569;">Memeriksa...</div></div></div>
+            <div class="health-item"><div class="health-dot ok"></div><div><div style="font-size:13px;font-weight:600;">API Server</div><div style="font-size:11px;color:#475569;">Memeriksa...</div></div></div>
+            <div class="health-item"><div class="health-dot ok"></div><div><div style="font-size:13px;font-weight:600;">Sesi Aktif</div><div style="font-size:11px;color:#475569;" id="health-sesi">Memeriksa...</div></div></div>
+            <div class="health-item"><div class="health-dot ok"></div><div><div style="font-size:13px;font-weight:600;">Penyimpanan</div><div style="font-size:11px;color:#475569;" id="health-storage">Normal</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PENGGUNA -->
+      <div id="tab-pengguna" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F465;</span> Manajemen Pengguna
+        </div>
+        <div class="cari-wrapper">
+          <input type="text" id="cari-pengguna" placeholder="Cari nama, email, atau telepon..." oninput="filterPengguna(this.value)">
+          <button class="btn btn-outline" style="font-size:12px;padding:8px 14px;" onclick="muatPengguna()">&#x1F504; Refresh</button>
+        </div>
+        <div style="overflow-x:auto;background:#111827;border:1px solid #1e293b;border-radius:16px;">
+          <table class="tabel">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Status</th>
+                <th>Teman</th><th>Daftar</th><th>Terakhir Online</th><th>Password</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-pengguna">
+              <tr><td colspan="10" style="text-align:center;color:#475569;padding:30px;">Klik menu Pengguna untuk memuat data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PERTEMANAN -->
+      <div id="tab-pertemanan" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F91D;</span> Manajemen Pertemanan
+        </div>
+        <div class="stat-row" style="margin-bottom:20px;">
+          <div class="stat-kartu hijau">
+            <div class="stat-label">Pertemanan Aktif</div>
+            <div class="stat-angka" id="fr-accepted">-</div>
+          </div>
+          <div class="stat-kartu kuning">
+            <div class="stat-label">Menunggu Konfirmasi</div>
+            <div class="stat-angka" id="fr-pending">-</div>
+          </div>
+          <div class="stat-kartu merah">
+            <div class="stat-label">Ditolak</div>
+            <div class="stat-angka" id="fr-rejected">-</div>
+          </div>
+        </div>
+        <div class="panel-kartu" style="margin-bottom:16px;">
+          <div class="panel-judul">Permintaan Tertunda (Pending)</div>
+          <div id="daftar-pending" style="font-size:13px;color:#475569;">Memuat...</div>
+        </div>
+        <div class="panel-kartu">
+          <div class="panel-judul">Semua Pertemanan</div>
+          <div style="overflow-x:auto;">
+            <table class="tabel" id="tabel-pertemanan">
+              <thead>
+                <tr><th>ID</th><th>Pengirim</th><th>Penerima</th><th>Status</th><th>Tanggal</th><th>Aksi</th></tr>
+              </thead>
+              <tbody id="tbody-pertemanan">
+                <tr><td colspan="6" style="text-align:center;color:#475569;padding:20px;">Memuat...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PETA -->
+      <div id="tab-peta" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F5FA;</span> Peta Live
+          <span style="margin-left:auto;font-size:12px;color:#475569;font-weight:400;" id="jumlah-marker">Memuat lokasi...</span>
+        </div>
+        <div id="peta-admin"></div>
+      </div>
+
+      <!-- EDITOR -->
+      <div id="tab-editor" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F4DD;</span> Editor File
+        </div>
+        <div class="editor-panel" style="height:500px;">
+          <div class="file-tree" id="pohon-file">
+            <div style="font-size:11px;color:#64748b;padding:8px 14px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">File</div>
+          </div>
+          <div class="editor-area">
+            <div class="editor-toolbar">
+              <span style="font-size:13px;color:#64748b;" id="nama-file-aktif">Pilih file dari daftar</span>
+              <span id="status-sintaks" style="font-size:12px;"></span>
+              <div style="margin-left:auto;display:flex;gap:8px;">
+                <button class="btn btn-outline" style="font-size:12px;padding:5px 12px;" onclick="simpanFile()" id="tombol-simpan" disabled>&#x1F4BE; Simpan</button>
+              </div>
+            </div>
+            <textarea class="editor-kode" id="area-editor" placeholder="Pilih file dari panel kiri untuk mulai mengedit..." oninput="cekSintaks()"></textarea>
+            <div class="editor-status">
+              <span id="status-editor">Siap</span>
+              <span id="posisi-kursor">Baris 1, Kolom 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATABASE -->
+      <div id="tab-database" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F4BE;</span> Database SQL
+        </div>
+        <div class="panel-kartu" style="margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Eksekusi Query SQL</div>
+          <textarea id="query-sql" style="width:100%;height:120px;font-family:'Cascadia Code','Fira Code',monospace;font-size:13px;background:#0d1321;color:#e2e8f0;border:1px solid #1e293b;border-radius:10px;padding:12px;resize:vertical;" placeholder="SELECT * FROM users LIMIT 10;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="btn btn-hijau" onclick="eksekusiSQL()">&#x25B6; Jalankan</button>
+            <button class="btn btn-outline" style="font-size:12px;" onclick="document.getElementById('query-sql').value='SELECT id, nama, email, is_online, created_at FROM users ORDER BY created_at DESC LIMIT 20;'">Daftar User</button>
+            <button class="btn btn-outline" style="font-size:12px;" onclick="document.getElementById('query-sql').value='SELECT f.id, u1.nama AS pengirim, u2.nama AS penerima, f.status, f.created_at FROM friends f JOIN users u1 ON f.from_user_id=u1.id JOIN users u2 ON f.to_user_id=u2.id ORDER BY f.created_at DESC LIMIT 20;'">Pertemanan</button>
+            <button class="btn btn-outline" style="font-size:12px;" onclick="document.getElementById('query-sql').value='SELECT COUNT(*) as total_pesan, COUNT(DISTINCT from_user_id) as pengirim FROM messages;'">Stats Pesan</button>
+            <button class="btn btn-outline" style="font-size:12px;" onclick="document.getElementById('query-sql').value='SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 20;'">Log Aktivitas</button>
+            <button class="btn btn-outline" style="font-size:12px;" onclick="document.getElementById('query-sql').value='SELECT f.status, COUNT(*) as jumlah FROM friends f GROUP BY f.status;'">Stats Pertemanan</button>
+          </div>
+          <div id="hasil-sql" style="margin-top:16px;font-family:monospace;font-size:12px;background:#0a0f1a;padding:14px;border-radius:10px;white-space:pre-wrap;max-height:400px;overflow-y:auto;display:none;border:1px solid #1e293b;"></div>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div id="tab-log" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x1F4CB;</span> Log Aktivitas
+        </div>
+        <div id="log-nama-pengguna" style="margin-bottom:16px;font-size:14px;"></div>
+        <div style="overflow-x:auto;background:#111827;border:1px solid #1e293b;border-radius:16px;">
+          <table class="tabel">
+            <thead><tr><th>Waktu</th><th>Aksi</th><th>Detail</th></tr></thead>
+            <tbody id="tabel-log">
+              <tr><td colspan="3" style="text-align:center;color:#475569;padding:20px;">Pilih pengguna untuk melihat log</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- KONTROL SISTEM -->
+      <div id="tab-kontrol" class="tab-konten">
+        <div class="section-judul">
+          <span class="section-judul-icon">&#x2699;</span> Kontrol Sistem
+        </div>
+
+        <div class="kontrol-kartu">
+          <div class="kontrol-judul">Mode Maintenance</div>
+          <div class="kontrol-desc">Aktifkan untuk mengalihkan semua pengguna ke halaman maintenance. Semua sesi akan dihapus.</div>
+          <div class="switch-wrapper">
+            <label class="switch">
+              <input type="checkbox" id="toggle-maintenance" onchange="toggleMaintenance()">
+              <span class="slider"></span>
+            </label>
+            <span id="status-maintenance" style="font-size:13px;color:#64748b;">Memeriksa...</span>
+          </div>
+        </div>
+
+        <div class="kontrol-kartu">
+          <div class="kontrol-judul">Force Logout</div>
+          <div class="kontrol-desc">Logout paksa semua pengguna yang sedang online. Berguna setelah update sistem.</div>
+          <button class="btn btn-merah" onclick="forceLogoutSemua()">&#x26A0; Force Logout Semua Client</button>
+        </div>
+
+        <div class="kontrol-kartu">
+          <div class="kontrol-judul">Bersihkan Data</div>
+          <div class="kontrol-desc">Hapus data lama yang sudah tidak diperlukan untuk mengoptimalkan performa database.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline" style="font-size:13px;" onclick="bersihkanLogLama()">Hapus Log &gt; 30 hari</button>
+            <button class="btn btn-outline" style="font-size:13px;" onclick="bersihkanSesiExpired()">Hapus Sesi Expired</button>
+            <button class="btn btn-outline" style="font-size:13px;" onclick="bersihkanPesanLama()">Hapus Pesan &gt; 30 hari</button>
+          </div>
+        </div>
+
+        <div class="kontrol-kartu">
+          <div class="kontrol-judul">Info Server</div>
+          <div style="font-size:13px;color:#94a3b8;line-height:2;">
+            <div>Platform: <strong>InfinityFree</strong></div>
+            <div>Database: <strong>MySQL (sql303.infinityfree.com)</strong></div>
+            <div>PHP Version: <strong id="php-version">-</strong></div>
+            <div>Waktu Server: <strong id="server-time">-</strong></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/admin.js?v=5"></script>
+</body>
+</html>
